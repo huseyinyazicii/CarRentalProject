@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
 using System;
@@ -18,40 +19,78 @@ namespace Business.Concrete
             _colorDal = colorDal;
         }
 
-        public void Add(Color color)
+        public IResult Add(Color color)
         {
-            _colorDal.Add(color);
-        }
-
-        public void Delete(Color color)
-        {
-            _colorDal.Delete(color);
-        }
-
-        public Color Get(int id)
-        {
-            var result = _colorDal.Get(c => c.Id == id);
-            return result;
-        }
-
-        public List<Color> GetAll()
-        {
-            var result = _colorDal.GetAll();
-            return result;
-        }
-
-        public void Update(Color color)
-        {
-            var oldColor = _colorDal.Get(c => c.Id == color.Id);
-
-            if(oldColor == null)
+            try
             {
-                throw new InvalidOperationException();
+                _colorDal.Add(color);
             }
+            catch (Exception exception)
+            {
+                return new ErrorResult(exception.Message);
+            }
+            return new SuccessResult();
+        }
 
-            oldColor.Name = color.Name != default ? color.Name : oldColor.Name;
+        public IResult Delete(Color color)
+        {
+            try
+            {
+                _colorDal.Delete(color);
+            }
+            catch (Exception exception)
+            {
+                return new ErrorResult(exception.Message);
+            }
+            return new SuccessResult();
+        }
 
-            _colorDal.Update(oldColor);
+        public IDataResult<Color> Get(int id)
+        {
+            Color color;
+            try
+            {
+                color = _colorDal.Get(c => c.Id == id);
+            }
+            catch (Exception exception)
+            {
+                return new ErrorDataResult<Color>(exception.Message);
+            }
+            return new SuccessDataResult<Color>(color);
+        }
+
+        public IDataResult<List<Color>> GetAll()
+        {
+            List<Color> colors;
+            try
+            {
+                colors = _colorDal.GetAll();
+            }
+            catch (Exception exception)
+            {
+                return new ErrorDataResult<List<Color>>(exception.Message);
+            }
+            return new SuccessDataResult<List<Color>>(colors);
+        }
+
+        public IResult Update(Color color)
+        {
+            Color oldColor;
+            try
+            {
+                oldColor = _colorDal.Get(c => c.Id == color.Id);
+                if (oldColor == null)
+                {
+                    return new ErrorResult("Color don't found");
+                }
+                oldColor.Name = color.Name != default ? color.Name : oldColor.Name;
+                _colorDal.Update(oldColor);
+            }
+            catch (Exception exception)
+            {
+                return new ErrorResult(exception.Message);
+            }
+            return new SuccessResult();
         }
     }
 }

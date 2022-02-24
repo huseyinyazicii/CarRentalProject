@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
 using System;
@@ -15,40 +16,78 @@ namespace Business.Concrete
             _brandDal = brandDal;
         }
 
-        public void Add(Brand brand)
+        public IResult Add(Brand brand)
         {
-            _brandDal.Add(brand);
-        }
-
-        public void Delete(Brand brand)
-        {
-            _brandDal.Delete(brand);
-        }
-
-        public Brand Get(int id)
-        {
-            var result = _brandDal.Get(b => b.Id == id);
-            return result;
-        }
-
-        public List<Brand> GetAll()
-        {
-            var result = _brandDal.GetAll();
-            return result;
-        }
-
-        public void Update(Brand brand)
-        {
-            var oldBrand = _brandDal.Get(b => b.Id == brand.Id);
-
-            if(oldBrand == null)
+            try
             {
-                throw new InvalidOperationException();
+                _brandDal.Add(brand);
             }
+            catch (Exception exception)
+            {
+                return new ErrorResult(exception.Message);
+            }
+            return new SuccessResult();
+        }
 
-            oldBrand.Name = brand.Name != default ? brand.Name : oldBrand.Name;
+        public IResult Delete(Brand brand)
+        {
+            try
+            {
+                _brandDal.Delete(brand);
+            }
+            catch (Exception exception)
+            {
+                return new ErrorResult(exception.Message);
+            }
+            return new SuccessResult();
+        }
 
-            _brandDal.Update(oldBrand);
+        public IDataResult<Brand> Get(int id)
+        {
+            Brand brand;
+            try
+            {
+                brand = _brandDal.Get(b => b.Id == id);
+            }
+            catch (Exception exception)
+            {
+                return new ErrorDataResult<Brand>(exception.Message);
+            }
+            return new SuccessDataResult<Brand>(brand);
+        }
+
+        public IDataResult<List<Brand>> GetAll()
+        {
+            List<Brand> brands;
+            try
+            {
+                brands = _brandDal.GetAll();
+            }
+            catch (Exception exception)
+            {
+                return new ErrorDataResult<List<Brand>>(exception.Message);
+            }
+            return new SuccessDataResult<List<Brand>>(brands);
+        }
+
+        public IResult Update(Brand brand)
+        {
+            Brand oldBrand;
+            try
+            {
+                oldBrand = _brandDal.Get(b => b.Id == brand.Id);
+                if (oldBrand == null)
+                {
+                    return new ErrorResult("Brand don't found!");
+                }
+                oldBrand.Name = brand.Name != default ? brand.Name : oldBrand.Name;
+                _brandDal.Update(oldBrand);
+            }
+            catch (Exception exception)
+            {
+                return new ErrorResult(exception.Message);
+            }
+            return new SuccessResult();
         }
     }
 }

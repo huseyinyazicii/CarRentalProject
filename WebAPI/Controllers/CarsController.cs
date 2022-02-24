@@ -23,8 +23,12 @@ namespace WebAPI.Controllers
         [HttpPost]
         public IActionResult Add(Car car)
         {
-            _carService.Add(car);
-            return Ok();
+            var result = _carService.Add(car);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
         }
 
         [Route("{id}")]
@@ -32,40 +36,60 @@ namespace WebAPI.Controllers
         public IActionResult Update(int id, Car car)
         {
             car.Id = id;
-            _carService.Update(car);
-            return Ok();
+            var result = _carService.Update(car);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
         }
 
         [Route("{id}")]
         [HttpDelete]
         public IActionResult Delete(int id)
         {
-            var car = _carService.Get(id);
-            _carService.Delete(car);
-            return Ok();
+            var car = _carService.Get(id).Data;
+            var result = _carService.Delete(car);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
         }
 
         [Route("{id}")]
         [HttpGet]
         public IActionResult Get(int id)
         {
-            var car = _carService.Get(id);
-            return Ok(car);
+            var result = _carService.Get(id);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
         }
 
         [HttpGet]
         public IActionResult GetAll()
         {
-            var cars = _carService.GetAll();
-            return Ok(cars);
+            var result = _carService.GetAll();
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
         }
 
         [Route("[Action]")]
         [HttpGet]
         public IActionResult GetAllByDetail()
         {
-            var cars = _carService.GetCarsDetail();
-            return Ok(cars);
+            var result = _carService.GetCarsDetail();
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
         }
     }
 }
