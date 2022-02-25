@@ -78,7 +78,7 @@ namespace Business.Concrete
                 oldBrand = _brandDal.Get(b => b.Id == brand.Id);
                 if (oldBrand == null)
                 {
-                    return new ErrorResult("Brand don't found!");
+                    return new ErrorResult("Brand not found!");
                 }
                 oldBrand.Name = brand.Name != default ? brand.Name : oldBrand.Name;
                 _brandDal.Update(oldBrand);

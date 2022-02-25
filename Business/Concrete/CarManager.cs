@@ -145,7 +145,7 @@ namespace Business.Concrete
 
                 if (oldCar == null)
                 {
-                    return new ErrorResult("Car don't found");
+                    return new ErrorResult("Car not found");
                 }
 
                 oldCar.BrandId = car.BrandId != default ? car.BrandId : oldCar.BrandId;

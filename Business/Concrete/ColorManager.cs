@@ -81,7 +81,7 @@ namespace Business.Concrete
                 oldColor = _colorDal.Get(c => c.Id == color.Id);
                 if (oldColor == null)
                 {
-                    return new ErrorResult("Color don't found");
+                    return new ErrorResult("Color not found");
                 }
                 oldColor.Name = color.Name != default ? color.Name : oldColor.Name;
                 _colorDal.Update(oldColor);
