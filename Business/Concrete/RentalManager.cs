@@ -23,6 +23,11 @@ namespace Business.Concrete
         {
             try
             {
+                var result = _rentalDal.Get(r => r.CarId == rental.CarId && r.ReturnDate == null);
+                if(result != null)
+                {
+                    return new ErrorResult("The car is not available for rental");
+                }
                 _rentalDal.Add(rental);
             }
             catch (Exception exception)
