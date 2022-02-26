@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.ValidationRules.FluentValidation;
+using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
@@ -21,6 +23,8 @@ namespace Business.Concrete
 
         public IResult Add(Color color)
         {
+            FluentValidationTool.Validate(new ColorValidator(), color);
+
             try
             {
                 _colorDal.Add(color);
@@ -75,6 +79,8 @@ namespace Business.Concrete
 
         public IResult Update(Color color)
         {
+            FluentValidationTool.Validate(new ColorValidator(), color);
+
             Color oldColor;
             try
             {

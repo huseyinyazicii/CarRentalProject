@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.ValidationRules.FluentValidation;
+using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
@@ -18,6 +20,8 @@ namespace Business.Concrete
 
         public IResult Add(Brand brand)
         {
+            FluentValidationTool.Validate(new BrandValidator(), brand);
+
             try
             {
                 _brandDal.Add(brand);
@@ -72,6 +76,8 @@ namespace Business.Concrete
 
         public IResult Update(Brand brand)
         {
+            FluentValidationTool.Validate(new BrandValidator(), brand);
+
             Brand oldBrand;
             try
             {

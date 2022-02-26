@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.ValidationRules.FluentValidation;
+using Core.CrossCuttingConcerns.Validation;
 using Core.Entities.Concrete;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
@@ -21,6 +23,8 @@ namespace Business.Concrete
 
         public IResult Add(User user)
         {
+            FluentValidationTool.Validate(new UserValidator(), user);
+
             try
             {
                 _userDal.Add(user);
@@ -75,6 +79,8 @@ namespace Business.Concrete
 
         public IResult Update(User user)
         {
+            FluentValidationTool.Validate(new UserValidator(), user);
+
             User oldUser;
             try
             {

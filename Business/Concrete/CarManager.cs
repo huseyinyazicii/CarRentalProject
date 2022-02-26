@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.ValidationRules.FluentValidation;
+using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
@@ -22,10 +24,7 @@ namespace Business.Concrete
 
         public IResult Add(Car car)
         {
-            if (car.Description.Length < 2 || car.DailyPrice < 0)
-            {
-                return new ErrorResult("Validation Error");
-            }
+            FluentValidationTool.Validate(new CarValidator(), car);
 
             try
             {
@@ -138,6 +137,8 @@ namespace Business.Concrete
 
         public IResult Update(Car car)
         {
+            FluentValidationTool.Validate(new CarValidator(), car);
+
             Car oldCar;
             try
             {
