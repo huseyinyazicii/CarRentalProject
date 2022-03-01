@@ -1,5 +1,6 @@
 ﻿using Business.Abstract;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
@@ -18,10 +19,9 @@ namespace Business.Concrete
             _brandDal = brandDal;
         }
 
+        [ValidationAspect(typeof(BrandValidator))]
         public IResult Add(Brand brand)
         {
-            FluentValidationTool.Validate(new BrandValidator(), brand);
-
             try
             {
                 _brandDal.Add(brand);
@@ -74,10 +74,9 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Brand>>(brands);
         }
 
+        [ValidationAspect(typeof(BrandValidator))]
         public IResult Update(Brand brand)
         {
-            FluentValidationTool.Validate(new BrandValidator(), brand);
-
             Brand oldBrand;
             try
             {
