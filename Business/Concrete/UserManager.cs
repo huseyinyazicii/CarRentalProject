@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Business.Constants;
 using Business.ValidationRules.FluentValidation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Entities.Concrete;
@@ -75,6 +76,24 @@ namespace Business.Concrete
                 return new ErrorDataResult<List<User>>(exception.Message);
             }
             return new SuccessDataResult<List<User>>(users);
+        }
+
+        public IDataResult<User> GetByEmail(string email)
+        {
+            User user = _userDal.Get(p => p.Email.ToLower() == email.ToLower());
+            if (user == null)
+            {
+                return new ErrorDataResult<User>(Messages.GetErrorUserMessage);
+            }
+            else
+            {
+                return new SuccessDataResult<User>(user, Messages.GetSuccessUserMessage);
+            }
+        }
+
+        public IDataResult<List<OperationClaim>> GetClaims(User user)
+        {
+            return new SuccessDataResult<List<OperationClaim>>(_userDal.GetClaims(user));
         }
 
         public IResult Update(User user)
