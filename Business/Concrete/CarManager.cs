@@ -1,5 +1,7 @@
 ﻿using Business.Abstract;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Performance;
+using Core.Aspects.Autofac.Transaction;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
@@ -22,6 +24,8 @@ namespace Business.Concrete
             _carDal = carDal;
         }
 
+        //[TransactionAspect]
+        //[PerformanceAspect(2)]
         public IResult Add(Car car)
         {
             FluentValidationTool.Validate(new CarValidator(), car);
