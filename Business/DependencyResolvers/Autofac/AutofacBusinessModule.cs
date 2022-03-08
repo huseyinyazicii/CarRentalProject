@@ -38,6 +38,10 @@ namespace Business.DependencyResolvers.Autofac
             builder.RegisterType<AuthManager>().As<IAuthService>();
             builder.RegisterType<JwtHelper>().As<ITokenHelper>();
 
+            builder.RegisterType<PaymentManager>().As<IPaymentService>();
+
+            builder.RegisterType<FindeksManager>().As<IFindeksService>();
+
             //Aspects Load
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
 

@@ -13,11 +13,13 @@ namespace WebAPI.Controllers
     [ApiController]
     public class RentalsController : ControllerBase
     {
-        IRentalService _rentalService;
+        private readonly IRentalService _rentalService;
+        private readonly IPaymentService _paymentService;
 
-        public RentalsController(IRentalService rentalService)
+        public RentalsController(IRentalService rentalService, IPaymentService paymentService)
         {
             _rentalService = rentalService;
+            _paymentService = paymentService;
         }
 
         [HttpPost]
@@ -78,6 +80,43 @@ namespace WebAPI.Controllers
                 return BadRequest(result);
             }
             return Ok(result);
+        }
+
+        [HttpGet("getallrentaldetails")]
+        public ActionResult GetAllRentalDetails()
+        {
+            var result = _rentalService.GetAllRentalDetails();
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+
+        [HttpGet("getallundeliveredrentaldetails")]
+        public ActionResult GetAllUndeliveredRentalDetails()
+        {
+            var result = _rentalService.GetAllUndeliveredRentalDetails();
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+
+        [HttpGet("getalldeliveredrentaldetails")]
+        public ActionResult GetAllDeliveredRentalDetails()
+        {
+            var result = _rentalService.GetAllDeliveredRentalDetails();
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+
+        [HttpPost("deliverthecar")]
+        public ActionResult DeliverTheCar(Rental rental)
+        {
+            var result = _rentalService.DeliverTheCar(rental);
+            if (result.Success)
+                return Ok(result);
+            else
+                return BadRequest(result);
         }
     }
 }

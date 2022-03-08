@@ -1,9 +1,12 @@
 ﻿using Business.Abstract;
+using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
+using Entities.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,92 +17,64 @@ namespace Business.Concrete
 {
     public class CustomerManager : ICustomerService
     {
-        ICustomerDal _customerDal;
+        private readonly ICustomerDal _customerDal;
 
         public CustomerManager(ICustomerDal customerDal)
         {
             _customerDal = customerDal;
         }
 
+        [ValidationAspect(typeof(CustomerValidator))]
         public IResult Add(Customer customer)
         {
-            FluentValidationTool.Validate(new CustomerValidator(), customer);
-
-            try
-            {
-                _customerDal.Add(customer);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _customerDal.Add(customer);
+            return new SuccessResult(Messages.AddCustomerMessage);
         }
 
         public IResult Delete(Customer customer)
         {
-            try
-            {
-                _customerDal.Delete(customer);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _customerDal.Delete(customer);
+            return new SuccessResult(Messages.DeleteCustomerMessage);
         }
 
         public IDataResult<Customer> Get(int id)
         {
-            Customer customer;
-            try
+            Customer customer = _customerDal.Get(c => c.Id == id);
+            if(customer == null)
             {
-                customer = _customerDal.Get(c => c.Id == id);
+                return new ErrorDataResult<Customer>(Messages.GetErrorCustomerMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<Customer>(exception.Message);
-            }
-            return new SuccessDataResult<Customer>(customer);
+            return new SuccessDataResult<Customer>(customer, Messages.GetSuccessCustomerMessage);
         }
 
         public IDataResult<List<Customer>> GetAll()
         {
-            List<Customer> customers;
-            try
+            List<Customer> customers = _customerDal.GetAll();
+            if (customers == null)
             {
-                customers = _customerDal.GetAll();
+                return new ErrorDataResult<List<Customer>>(Messages.GetErrorCustomerMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<Customer>>(exception.Message);
-            }
-            return new SuccessDataResult<List<Customer>>(customers);
+            return new SuccessDataResult<List<Customer>>(customers, Messages.GetSuccessCustomerMessage);
         }
 
+        public IDataResult<List<CustomerDetailDto>> GetCustomerDetails()
+        {
+            var customers = _customerDal.GetCustomerDetailDto();
+            return new SuccessDataResult<List<CustomerDetailDto>>(customers, Messages.GetSuccessCustomerMessage);
+        }
+
+        [ValidationAspect(typeof(CustomerValidator))]
         public IResult Update(Customer customer)
         {
-            FluentValidationTool.Validate(new CustomerValidator(), customer);
-
-            Customer oldCustomer;
             try
             {
-                oldCustomer = _customerDal.Get(c => c.Id == customer.Id);
-                if(oldCustomer == null)
-                {
-                    return new ErrorResult("Customer not found");
-                }
-
-                oldCustomer.UserId = customer.UserId != default ? customer.UserId : oldCustomer.UserId;
-                oldCustomer.CompanyName = customer.CompanyName != default ? customer.CompanyName : oldCustomer.CompanyName;
-
-                _customerDal.Update(oldCustomer);
+                _customerDal.Update(customer);
+                return new SuccessResult(Messages.EditCustomerMessage);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                return new ErrorResult(exception.Message);
+                return new ErrorResult(Messages.ErrorCustomerFKMessage);
             }
-            return new SuccessResult();
         }
     }
 }

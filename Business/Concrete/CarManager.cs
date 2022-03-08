@@ -1,7 +1,10 @@
 ﻿using Business.Abstract;
+using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Caching;
 using Core.Aspects.Autofac.Performance;
 using Core.Aspects.Autofac.Transaction;
+using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
@@ -17,155 +20,131 @@ namespace Business.Concrete
 {
     public class CarManager : ICarService
     {
-        ICarDal _carDal;
+        private readonly ICarDal _carDal;
+        private readonly ICarImageService _carImageService;
 
-        public CarManager(ICarDal carDal)
+        public CarManager(ICarDal carDal, ICarImageService carImageService)
         {
             _carDal = carDal;
+            _carImageService = carImageService;
         }
 
-        //[TransactionAspect]
-        //[PerformanceAspect(2)]
+        [CacheRemoveAspect("Get")]
+        [ValidationAspect(typeof(CarValidator))]
         public IResult Add(Car car)
         {
-            FluentValidationTool.Validate(new CarValidator(), car);
-
-            try
-            {
-                _carDal.Add(car);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-
-            return new SuccessResult();
+            _carDal.Add(car);
+            return new SuccessResult(Messages.AddCarMessage);
         }
 
         public IResult Delete(Car car)
         {
-            try
-            {
-                _carDal.Delete(car);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _carDal.Delete(car);
+            return new SuccessResult(Messages.DeleteCarMessage);
         }
 
         public IDataResult<Car> Get(int id)
         {
-            Car car;
-            try
+            Car car = _carDal.Get(c => c.Id == id);
+            if(car == null)
             {
-                car = _carDal.Get(c => c.Id == id);
+                return new ErrorDataResult<Car>(Messages.GetErrorCarMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<Car>(exception.Message);
-            }
-            return new SuccessDataResult<Car>(car);
+            return new SuccessDataResult<Car>(car, Messages.GetSuccessCarMessage);
         }
 
+        [CacheAspect]
         public IDataResult<List<Car>> GetAll()
         {
-            List<Car> cars;
-            try
+            List<Car> cars = _carDal.GetAll();
+            if (cars == null)
             {
-                cars = _carDal.GetAll();
+                return new ErrorDataResult<List<Car>>(Messages.GetErrorCarMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<Car>>(exception.Message);
-            }
-            return new SuccessDataResult<List<Car>>(cars);
+            return new SuccessDataResult<List<Car>>(cars, Messages.GetSuccessCarMessage);
         }
 
-        public IDataResult<CarDetailDto> GetCarDetail(int carId)
+        public IDataResult<CarDetailAndImagesDto> GetCarDetailAndImagesDto(int carId)
         {
-            CarDetailDto car;
-            try
-            {
-                car = _carDal.GetCarDetail(carId);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<CarDetailDto>(exception.Message);
-            }
-            return new SuccessDataResult<CarDetailDto>(car);
-        }
+            var result = _carDal.GetCarDetail(carId);
+            var imageResult = _carImageService.GetAllByCarId(carId);
 
-        public IDataResult<List<Car>> GetCarsByBrandId(int brandId)
-        {
-            List<Car> cars;
-            try
+            if (result == null || imageResult.Success == false)
             {
-                cars = _carDal.GetAll(c => c.BrandId == brandId);
+                return new ErrorDataResult<CarDetailAndImagesDto>(Messages.GetErrorCarMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<Car>>(exception.Message);
-            }
-            return new SuccessDataResult<List<Car>>(cars);
-        }
 
-        public IDataResult<List<Car>> GetCarsByColorId(int colorId)
-        {
-            List<Car> cars;
-            try
+            var carDetailAndImagesDto = new CarDetailAndImagesDto
             {
-                cars = _carDal.GetAll(c => c.ColorId == colorId);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<Car>>(exception.Message);
-            }
-            return new SuccessDataResult<List<Car>>(cars);
+                Car = result,
+                CarImages = imageResult.Data
+            };
+
+            return new SuccessDataResult<CarDetailAndImagesDto>(carDetailAndImagesDto, Messages.GetSuccessCarMessage);
         }
 
         public IDataResult<List<CarDetailDto>> GetCarsDetail()
         {
-            List<CarDetailDto> cars;
-            try
+            List<CarDetailDto> cars = _carDal.GetCarsDetail();
+            if(cars == null)
             {
-                cars = _carDal.GetCarsDetail();
+                return new ErrorDataResult<List<CarDetailDto>>(Messages.GetErrorCarMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<CarDetailDto>>(exception.Message);
-            }
-            return new SuccessDataResult<List<CarDetailDto>>(cars);
+            return new SuccessDataResult<List<CarDetailDto>>(cars, Messages.GetSuccessCarMessage);
         }
 
+        public IDataResult<List<CarDetailDto>> GetCarsDetailByBrandId(int brandId)
+        {
+            List<CarDetailDto> carDetails = _carDal.GetCarsDetail(p => p.BrandId == brandId);
+            if (carDetails == null)
+            {
+                return new ErrorDataResult<List<CarDetailDto>>(Messages.GetErrorCarMessage);
+            }
+            return new SuccessDataResult<List<CarDetailDto>>(carDetails, Messages.GetErrorCarMessage);
+        }
+
+        public IDataResult<List<CarDetailDto>> GetCarsDetailByBrandIdAndColorId(int brandId, int colorId)
+        {
+            List<CarDetailDto> carDetails = _carDal.GetCarsDetail(p => p.BrandId == brandId && p.ColorId == colorId);
+            if (carDetails == null)
+            {
+                return new ErrorDataResult<List<CarDetailDto>>(Messages.GetErrorCarMessage);
+            }
+            return new SuccessDataResult<List<CarDetailDto>>(carDetails, Messages.GetErrorCarMessage);
+        }
+
+        public IDataResult<List<CarDetailDto>> GetCarsDetailByColorId(int colorId)
+        {
+            List<CarDetailDto> carDetails = _carDal.GetCarsDetail(p => p.ColorId == colorId);
+            if (carDetails == null)
+            {
+                return new ErrorDataResult<List<CarDetailDto>>(Messages.GetErrorCarMessage);
+            }
+            return new SuccessDataResult<List<CarDetailDto>>(carDetails, Messages.GetErrorCarMessage);
+        }
+
+        [ValidationAspect(typeof(CarValidator))]
         public IResult Update(Car car)
         {
             FluentValidationTool.Validate(new CarValidator(), car);
 
-            Car oldCar;
-            try
-            {
-                oldCar = _carDal.Get(c => c.Id == car.Id);
+            _carDal.Update(car);
+            return new SuccessResult(Messages.EditCarMessage);
 
-                if (oldCar == null)
-                {
-                    return new ErrorResult("Car not found");
-                }
+            //Car oldCar = _carDal.Get(c => c.Id == car.Id);
 
-                oldCar.BrandId = car.BrandId != default ? car.BrandId : oldCar.BrandId;
-                oldCar.ColorId = car.ColorId != default ? car.ColorId : oldCar.ColorId;
-                oldCar.DailyPrice = car.DailyPrice != default ? car.DailyPrice : oldCar.DailyPrice;
-                oldCar.Description = car.Description != default ? car.Description : oldCar.Description;
-                oldCar.ModelYear = car.ModelYear != default ? car.ModelYear : oldCar.ModelYear;
+            //if (oldCar == null)
+            //{
+            //    return new ErrorResult("Car not found");
+            //}
 
-                _carDal.Update(oldCar);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            //oldCar.BrandId = car.BrandId != default ? car.BrandId : oldCar.BrandId;
+            //oldCar.ColorId = car.ColorId != default ? car.ColorId : oldCar.ColorId;
+            //oldCar.DailyPrice = car.DailyPrice != default ? car.DailyPrice : oldCar.DailyPrice;
+            //oldCar.Description = car.Description != default ? car.Description : oldCar.Description;
+            //oldCar.ModelYear = car.ModelYear != default ? car.ModelYear : oldCar.ModelYear;
+
+            //_carDal.Update(oldCar);
         }
     }
 }

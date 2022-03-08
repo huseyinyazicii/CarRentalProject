@@ -13,7 +13,7 @@ namespace WebAPI.Controllers
     [ApiController]
     public class CustomersController : ControllerBase
     {
-        ICustomerService _customerService;
+        private readonly ICustomerService _customerService;
 
         public CustomersController(ICustomerService customerService)
         {
@@ -78,6 +78,15 @@ namespace WebAPI.Controllers
                 return BadRequest(result);
             }
             return Ok(result);
+        }
+
+        [HttpGet("getcustomerdetails")]
+        public ActionResult GetCustomerDetails()
+        {
+            var result = _customerService.GetCustomerDetails();
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
         }
     }
 }

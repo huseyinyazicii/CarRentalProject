@@ -1,10 +1,12 @@
 ﻿using Business.Abstract;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Entities.Concrete;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
+using Entities.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,67 +17,44 @@ namespace Business.Concrete
 {
     public class UserManager : IUserService
     {
-        IUserDal _userDal;
+        private readonly IUserDal _userDal;
 
         public UserManager(IUserDal userDal)
         {
             _userDal = userDal;
         }
 
+        [ValidationAspect(typeof(UserValidator))]
         public IResult Add(User user)
         {
-            FluentValidationTool.Validate(new UserValidator(), user);
-
-            try
-            {
-                _userDal.Add(user);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _userDal.Add(user);
+            return new SuccessResult(Messages.AddUserMessage);
         }
 
         public IResult Delete(User user)
         {
-            try
-            {
-                _userDal.Delete(user);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _userDal.Delete(user);
+            return new SuccessResult(Messages.DeleteUserMessage);
         }
 
         public IDataResult<User> Get(int id)
         {
-            User user;
-            try
+            User user = _userDal.Get(p => p.Id == id);
+            if (user == null)
             {
-                user = _userDal.Get(u => u.Id == id);
+                return new ErrorDataResult<User>(Messages.GetErrorUserMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<User>(exception.Message);
-            }
-            return new SuccessDataResult<User>(user);
+            return new SuccessDataResult<User>(user, Messages.GetSuccessUserMessage);
         }
 
         public IDataResult<List<User>> GetAll()
         {
-            List<User> users;
-            try
+            List<User> users = _userDal.GetAll();
+            if (users.Count == 0)
             {
-                users = _userDal.GetAll();
+                return new ErrorDataResult<List<User>>(Messages.GetErrorUserMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<User>>(exception.Message);
-            }
-            return new SuccessDataResult<List<User>>(users);
+            return new SuccessDataResult<List<User>>(users, Messages.GetSuccessUserMessage);
         }
 
         public IDataResult<User> GetByEmail(string email)
@@ -85,10 +64,23 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<User>(Messages.GetErrorUserMessage);
             }
-            else
+            return new SuccessDataResult<User>(user, Messages.GetSuccessUserMessage);
+        }
+
+        public IDataResult<UserBasicDto> GetByEmailDto(string email)
+        {
+            User user = _userDal.Get(p => p.Email.ToLower() == email.ToLower());
+            if (user == null)
             {
-                return new SuccessDataResult<User>(user, Messages.GetSuccessUserMessage);
+                return new ErrorDataResult<UserBasicDto>(Messages.GetErrorUserMessage);
             }
+            return new SuccessDataResult<UserBasicDto>(new UserBasicDto 
+            { 
+                Id = user.Id, 
+                Email = user.Email, 
+                FirstName = user.FirstName,
+                LastName = user.LastName 
+            }, Messages.GetSuccessUserMessage);
         }
 
         public IDataResult<List<OperationClaim>> GetClaims(User user)
@@ -96,33 +88,11 @@ namespace Business.Concrete
             return new SuccessDataResult<List<OperationClaim>>(_userDal.GetClaims(user));
         }
 
+        [ValidationAspect(typeof(UserValidator))]
         public IResult Update(User user)
         {
-            FluentValidationTool.Validate(new UserValidator(), user);
-
-            User oldUser;
-            try
-            {
-                oldUser = _userDal.Get(u => u.Id == user.Id);
-                if(oldUser == null)
-                {
-                    return new ErrorResult("User not found");
-                }
-
-                oldUser.Email = user.Email != default ? user.Email : oldUser.Email;
-                oldUser.FirstName = user.FirstName != default ? user.FirstName : oldUser.FirstName;
-                oldUser.LastName = user.LastName != default ? user.LastName : oldUser.LastName;
-                oldUser.PasswordHash = user.PasswordHash != default ? user.PasswordHash : oldUser.PasswordHash;
-                oldUser.PasswordSalt = user.PasswordSalt != default ? user.PasswordSalt : oldUser.PasswordSalt;
-                oldUser.Status = user.Status != default ? user.Status : oldUser.Status;
-
-                _userDal.Update(oldUser);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _userDal.Update(user);
+            return new SuccessResult(Messages.EditUserMessage);
         }
     }
 }

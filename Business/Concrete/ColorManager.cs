@@ -1,5 +1,7 @@
 ﻿using Business.Abstract;
+using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
@@ -14,89 +16,51 @@ namespace Business.Concrete
 {
     public class ColorManager : IColorService
     {
-        IColorDal _colorDal;
+        private readonly IColorDal _colorDal;
 
         public ColorManager(IColorDal colorDal)
         {
             _colorDal = colorDal;
         }
 
+        [ValidationAspect(typeof(ColorValidator))]
         public IResult Add(Color color)
         {
-            FluentValidationTool.Validate(new ColorValidator(), color);
-
-            try
-            {
-                _colorDal.Add(color);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _colorDal.Add(color);
+            return new SuccessResult(Messages.AddColorMessage);
         }
 
         public IResult Delete(Color color)
         {
-            try
-            {
-                _colorDal.Delete(color);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _colorDal.Delete(color);
+            return new SuccessResult(Messages.DeleteColorMessage);
         }
 
         public IDataResult<Color> Get(int id)
         {
-            Color color;
-            try
+            Color color = _colorDal.Get(c => c.Id == id);
+            if(color == null)
             {
-                color = _colorDal.Get(c => c.Id == id);
+                return new ErrorDataResult<Color>(Messages.GetErrorColorMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<Color>(exception.Message);
-            }
-            return new SuccessDataResult<Color>(color);
+            return new SuccessDataResult<Color>(color, Messages.GetSuccessColorMessage);
         }
 
         public IDataResult<List<Color>> GetAll()
         {
-            List<Color> colors;
-            try
+            List<Color> colors = _colorDal.GetAll();
+            if (colors == null)
             {
-                colors = _colorDal.GetAll();
-            }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<Color>>(exception.Message);
+                return new ErrorDataResult<List<Color>>(Messages.GetErrorColorMessage);
             }
             return new SuccessDataResult<List<Color>>(colors);
         }
 
+        [ValidationAspect(typeof(ColorValidator))]
         public IResult Update(Color color)
         {
-            FluentValidationTool.Validate(new ColorValidator(), color);
-
-            Color oldColor;
-            try
-            {
-                oldColor = _colorDal.Get(c => c.Id == color.Id);
-                if (oldColor == null)
-                {
-                    return new ErrorResult("Color not found");
-                }
-                oldColor.Name = color.Name != default ? color.Name : oldColor.Name;
-                _colorDal.Update(oldColor);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _colorDal.Update(color);
+            return new SuccessResult(Messages.EditColorMessage);
         }
     }
 }

@@ -1,9 +1,13 @@
 ﻿using Business.Abstract;
+using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
+using Core.Utilities.Business;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
+using Entities.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,99 +18,138 @@ namespace Business.Concrete
 {
     public class RentalManager : IRentalService
     {
-        IRentalDal _rentalDal;
+        private readonly IRentalDal _rentalDal;
+        private readonly ICarService _carService;
+        private readonly IFindeksService _findeksService;
 
-        public RentalManager(IRentalDal rentalDal)
+        public RentalManager(IRentalDal rentalDal, ICarService carService, IFindeksService findeksService)
         {
             _rentalDal = rentalDal;
+            _carService = carService;
+            _findeksService = findeksService;
         }
 
+        [ValidationAspect(typeof(RentalValidator))]
         public IResult Add(Rental rental)
         {
-            FluentValidationTool.Validate(new RentalValidator(), rental);
+            var result = BusinessRules.Run(
+                WillLeasedCarAvailable(rental.CarId), 
+                IfCheckFindeksScore(rental));
 
-            try
+            if (result != null)
             {
-                var result = _rentalDal.Get(r => r.CarId == rental.CarId && r.ReturnDate == null);
-                if(result != null)
-                {
-                    return new ErrorResult("The car is not available for rental");
-                }
-                _rentalDal.Add(rental);
+                return result;
             }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+
+            _rentalDal.Add(rental);
+            return new SuccessResult(Messages.AddRentalMessage);
         }
 
         public IResult Delete(Rental rental)
         {
-            try
-            {
-                _rentalDal.Delete(rental);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _rentalDal.Delete(rental);
+            return new SuccessResult(Messages.DeleteRentalMessage);
         }
 
         public IDataResult<Rental> Get(int id)
         {
-            Rental rental;
-            try
+            Rental rental = _rentalDal.Get(p => p.Id == id);
+            if (rental == null)
             {
-                rental = _rentalDal.Get(r => r.Id == id);
+                return new ErrorDataResult<Rental>(Messages.GetErrorRentalMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<Rental>(exception.Message);
-            }
-            return new SuccessDataResult<Rental>(rental);
+            return new SuccessDataResult<Rental>(rental, Messages.GetSuccessRentalMessage);
         }
 
         public IDataResult<List<Rental>> GetAll()
         {
-            List<Rental> rentals;
-            try
+            List<Rental> rentals = _rentalDal.GetAll();
+            if (rentals.Count == 0)
             {
-                rentals = _rentalDal.GetAll();
+                return new ErrorDataResult<List<Rental>>(Messages.GetErrorRentalMessage);
             }
-            catch (Exception exception)
-            {
-                return new ErrorDataResult<List<Rental>>(exception.Message);
-            }
-            return new SuccessDataResult<List<Rental>>(rentals);
+            return new SuccessDataResult<List<Rental>>(rentals, Messages.GetSuccessRentalMessage);
         }
 
+        public IDataResult<List<RentalDetailDto>> GetAllRentalDetails()
+        {
+            List<RentalDetailDto> rentalDetailDtos = _rentalDal.GetAllRentalDetails();
+            if (rentalDetailDtos.Count > 0)
+                return new SuccessDataResult<List<RentalDetailDto>>(rentalDetailDtos, Messages.GetSuccessRentalMessage);
+            else
+                return new ErrorDataResult<List<RentalDetailDto>>(Messages.GetErrorRentalMessage);
+        }
+
+        public IDataResult<List<RentalDetailDto>> GetAllUndeliveredRentalDetails()
+        {
+            List<RentalDetailDto> rentalDetailDtos = _rentalDal.GetAllRentalDetails(p => p.ReturnDate == null);
+            if (rentalDetailDtos.Count > 0)
+                return new SuccessDataResult<List<RentalDetailDto>>(rentalDetailDtos, Messages.GetSuccessRentalMessage);
+            else
+                return new ErrorDataResult<List<RentalDetailDto>>(Messages.GetErrorRentalMessage);
+        }
+
+        public IDataResult<List<RentalDetailDto>> GetAllDeliveredRentalDetails()
+        {
+            List<RentalDetailDto> rentalDetailDtos = _rentalDal.GetAllRentalDetails(p => p.ReturnDate != null);
+            if (rentalDetailDtos.Count > 0)
+                return new SuccessDataResult<List<RentalDetailDto>>(rentalDetailDtos, Messages.GetSuccessRentalMessage);
+            else
+                return new ErrorDataResult<List<RentalDetailDto>>(Messages.GetErrorRentalMessage);
+        }
+
+        [ValidationAspect(typeof(RentalValidator))]
         public IResult Update(Rental rental)
         {
-            FluentValidationTool.Validate(new RentalValidator(), rental);
-
-            Rental oldRental;
-            try
-            {
-                oldRental = _rentalDal.Get(r => r.Id == rental.Id);
-                if(oldRental == null)
-                {
-                    return new ErrorResult("Rental not found");
-                }
-
-                oldRental.CarId = rental.CarId != default ? rental.CarId : oldRental.CarId;
-                oldRental.CustomerId = rental.CustomerId != default ? rental.CustomerId : oldRental.CustomerId;
-                oldRental.RentDate = rental.RentDate != default ? rental.RentDate : oldRental.RentDate;
-                oldRental.ReturnDate = rental.ReturnDate != default ? rental.ReturnDate : oldRental.ReturnDate;
-
-                _rentalDal.Update(oldRental);
-            }
-            catch (Exception exception)
-            {
-                return new ErrorResult(exception.Message);
-            }
-            return new SuccessResult();
+            _rentalDal.Update(rental);
+            return new SuccessResult(Messages.EditRentalMessage);
         }
+
+        public IResult DeliverTheCar(Rental rental)
+        {
+            var result = BusinessRules.Run(CanARentalCarBeReturned(rental.Id));
+            if (result != null)
+            {
+                return result;
+            }
+            _rentalDal.Update(rental);
+            return new SuccessResult(Messages.CarDeliverTheCar);
+        }
+
+        #region RentalManager Business Rules
+
+        private IResult WillLeasedCarAvailable(int carId)
+        {
+            if (_rentalDal.Get(p => p.CarId == carId && p.ReturnDate == null) != null)
+                return new ErrorResult(Messages.CarNotAvaible);
+            else
+                return new SuccessResult();
+        }
+
+        private IResult CanARentalCarBeReturned(int carId)
+        {
+            if (_rentalDal.Get(p => p.CarId == carId && p.ReturnDate == null) == null)
+                return new ErrorResult(Messages.CarNotAvaible);
+            else
+                return new SuccessResult();
+        }
+
+        private IResult IfCheckFindeksScore(Rental rental)
+        {
+            var car = _carService.Get(rental.CarId);
+            var findeks = _findeksService.GetFindeksScore(rental.CustomerId);
+
+            if (car.Success && findeks.Success)
+            {
+                if (car.Data.FindeksScore < findeks.Data)
+                {
+                    return new SuccessResult(Messages.FindeksPointsSufficient);
+                }
+                return new ErrorResult(Messages.FindeksPointsInsufficient);
+            }
+            return new ErrorResult(Messages.GetErrorRentalMessage);
+        }
+
+        #endregion RentalManager Business Rules
     }
 }

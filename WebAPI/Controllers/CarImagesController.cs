@@ -14,7 +14,7 @@ namespace WebAPI.Controllers
     [ApiController]
     public class CarImagesController : ControllerBase
     {
-        ICarImageService _carImageService;
+        private readonly ICarImageService _carImageService;
 
         public CarImagesController(ICarImageService carImageService)
         {
@@ -33,17 +33,17 @@ namespace WebAPI.Controllers
             return Ok(result);
         }
 
-        //[HttpPut]
-        //[DisableRequestSizeLimit]
-        //public IActionResult Update([FromForm] CarImagesOperationDto carImagesOperationDto)
-        //{
-        //    var result = _carImageService.Update(carImagesOperationDto);
-        //    if (!result.Success)
-        //    {
-        //        return BadRequest(result);
-        //    }
-        //    return Ok(result);
-        //}
+        [HttpPut]
+        [DisableRequestSizeLimit]
+        public IActionResult Update([FromForm] CarImagesOperationDto carImagesOperationDto)
+        {
+            var result = _carImageService.Update(carImagesOperationDto);
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
+        }
 
         [HttpDelete("delete")]
         public IActionResult Delete(CarImage carImage)

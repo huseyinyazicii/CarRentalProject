@@ -13,7 +13,7 @@ namespace WebAPI.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        IUserService _userService;
+        private readonly IUserService _userService;
 
         public UsersController(IUserService userService)
         {
@@ -79,5 +79,24 @@ namespace WebAPI.Controllers
             }
             return Ok(result);
         }
+
+        [HttpPost("getbyemaildto")]
+        public ActionResult GetByEmailDto(User user)
+        {
+            var result = _userService.GetByEmailDto(user.Email);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+
+        [HttpPost("getbyemail")]
+        public ActionResult GetByEmail(User user)
+        {
+            var result = _userService.GetByEmail(user.Email);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+
     }
 }
